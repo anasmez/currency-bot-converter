@@ -56,8 +56,7 @@ function formatMoneyString(string) {
 }
 
 function formatPercentage(percentage) {
-	const newPercentage = Number(Math.round(percentage + 'e2') + 'e-2');
-	return newPercentage;
+	return percentage.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 }
 
 function updateBotStatusMessage(status) {
@@ -82,7 +81,7 @@ async function updateBot() {
 		config.LAST_EUR_USD_RATE = newPrice;
 	}
 	newPrice = formatMoneyString(newPrice);
-	const statusMessage = `%${ formatPercentage(percentage)}`;
+	const statusMessage = `${ formatPercentage(percentage)}%`;
 	const nickname = `${ newPrice } (${ emoji })`;
 	updateBotStatusMessage(statusMessage);
 	updateBotNickname(nickname);
