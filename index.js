@@ -5,10 +5,10 @@ require('dotenv').config();
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CURRENCY_API_URL = 'https://api.coinbase.com/v2/exchange-rates?currency=EUR';
-const UPDATE_INTERVAL = process.env.INTERVAL_TIME || 5 * 1000;
+const UPDATE_INTERVAL = process.env.INTERVAL_TIME || 5 * 60 * 1000;
 
 const config = {
-	LAST_EUR_USD_RATE: undefined,
+	LAST_EUR_USD_RATE: null,
 };
 const botPresenceData = {
 	status: 'online',
@@ -25,8 +25,14 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.once('ready', () => {
 	console.log('Ready!');
-	updateBot();
-	setInterval(updateBot, UPDATE_INTERVAL);
+	getPrice()
+		.then((price) => {
+			config.LAST_EUR_USD_RATE = price;
+			updateBot();
+			setInterval(updateBot, UPDATE_INTERVAL);
+		}).catch((error) => {
+			console.log(error);
+		});
 });
 
 client.login(DISCORD_TOKEN);
@@ -49,6 +55,11 @@ function formatMoneyString(string) {
 	return `$${string.substring(0, 6)}`;
 }
 
+function formatPercentage(percentage) {
+	const newPercentage = Number(Math.round(percentage + 'e2') + 'e-2');
+	return newPercentage;
+}
+
 function updateBotStatusMessage(status) {
 	botPresenceData.activities[0].name = status;
 	client.user.setPresence(botPresenceData);
@@ -64,14 +75,14 @@ async function updateBot() {
 	let newPrice = await getPrice();
 	if (!newPrice) return;
 	let emoji = '-';
-	let percentage;
+	let percentage = 0;
 	if (config.LAST_EUR_USD_RATE && newPrice !== config.LAST_EUR_USD_RATE) {
-		percentage = newPrice / config.LAST_EUR_USD_RATE;
+		percentage = (newPrice / config.LAST_EUR_USD_RATE * 100) - 100;
 		emoji = percentage > 0 ? '↗' : '↘';
 		config.LAST_EUR_USD_RATE = newPrice;
 	}
 	newPrice = formatMoneyString(newPrice);
-	const statusMessage = `%${ percentage }`.substring(0, 5);
+	const statusMessage = `%${ formatPercentage(percentage)}`;
 	const nickname = `${ newPrice } (${ emoji })`;
 	updateBotStatusMessage(statusMessage);
 	updateBotNickname(nickname);
